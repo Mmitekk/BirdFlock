@@ -103,6 +103,10 @@ void AFlockBird::StartDeparture()
 	}
 	Outward = Outward.RotateAngleAxis(DepartYawJitterDeg, FVector::UpVector);
 	DepartDirection = (Outward + FVector(0.f, 0.f, DepartClimb)).GetSafeNormal();
+	// The departure line starts exactly where the bird is now; the bob is a transient
+	// offset on top of that line and must never accumulate into the position.
+	DepartBaseLocation = GetActorLocation();
+	MeshComponent->SetPlayRate(BasePlayRate * FMath::Max(DepartAnimRateMultiplier, 0.1f));
 	bDeparting = true;
 }
 
@@ -119,12 +123,14 @@ void AFlockBird::Tick(float DeltaSeconds)
 	TimeAlive += DeltaSeconds;
 	const float Bob = FMath::Sin((TimeAlive * BobFrequency + BobPhase) * 2.f * PI) * BobAmplitude;
 
-	// ------- Departure: straight line away from the spline until out of sight. / Otletpryamoi liniei ot splaina do skrytiya iz vidu.
+	// ------- Departure: a straight line away from the spline until out of sight.
+	// ------- Отлёт: прямая линия от сплайна, пока птица не скроется из виду.
 	if (bDeparting)
 	{
 		DepartTime += DeltaSeconds;
 		const float DepartSpeed = Speed * FMath::Max(DepartSpeedMultiplier, 0.1f);
-		SetActorLocation(GetActorLocation() + DepartDirection * (DepartSpeed * DeltaSeconds) + FVector(0.f, 0.f, Bob));
+		const FVector LinePosition = DepartBaseLocation + DepartDirection * (DepartSpeed * DepartTime);
+		SetActorLocation(LinePosition + FVector(0.f, 0.f, Bob * FMath::Max(DepartBobMultiplier, 0.f)));
 
 		if (!DepartDirection.IsNearlyZero())
 		{

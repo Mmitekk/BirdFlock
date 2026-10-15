@@ -328,7 +328,8 @@ void ABirdFlightPath::ActivateFlock()
 			{
 				Bird->MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 				Bird->MeshComponent->SetAnimation(Anim);
-				Bird->MeshComponent->SetPlayRate(Rng.FRandRange(0.95f, 1.1f));
+				Bird->BasePlayRate = Rng.FRandRange(0.95f, 1.1f);
+				Bird->MeshComponent->SetPlayRate(Bird->BasePlayRate);
 				Bird->MeshComponent->Play(true);
 			}
 		}
@@ -350,6 +351,8 @@ void ABirdFlightPath::ActivateFlock()
 		Bird->FlightDuration = FlightDuration;
 		Bird->DepartDelay = Rng.FRandRange(0.f, FMath::Max(DepartScatterDelay, 0.f));
 		Bird->DepartSpeedMultiplier = DepartSpeedMultiplier;
+		Bird->DepartAnimRateMultiplier = DepartAnimRateMultiplier;
+		Bird->DepartBobMultiplier = DepartBobMultiplier;
 		Bird->DepartYawJitterDeg = Rng.FRandRange(-15.f, 15.f);
 
 		if (bUsePerBirdSounds)

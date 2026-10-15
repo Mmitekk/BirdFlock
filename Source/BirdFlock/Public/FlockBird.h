@@ -73,6 +73,18 @@ public:
 	 * Множитель скорости при отлёте. */
 	float DepartSpeedMultiplier = 1.8f;
 
+	/** Wing flap (animation) speed multiplier while departing.
+	 * Множитель скорости взмахов крыльев (анимации) при отлёте. */
+	float DepartAnimRateMultiplier = 1.5f;
+
+	/** Multiplier of the vertical bobbing amplitude while departing. 0 = straight flight without bobbing.
+	 * Множитель амплитуды покачивания при отлёте. 0 — летят по прямой без качания. */
+	float DepartBobMultiplier = 1.f;
+
+	/** Animation play rate while following the spline; the departure multiplies it by DepartAnimRateMultiplier.
+	 * Скорость анимации на маршруте; при отлёте умножается на DepartAnimRateMultiplier. */
+	float BasePlayRate = 1.f;
+
 	/** Random yaw jitter of the departure direction, degrees.
 	 * Случайный разброс направления отлёта, градусы. */
 	float DepartYawJitterDeg = 0.f;
@@ -106,5 +118,6 @@ private:
 	float FlightTime = 0.f;
 	float DepartTime = 0.f;
 	FVector DepartDirection = FVector::ZeroVector;
+	FVector DepartBaseLocation = FVector::ZeroVector;
 	FTimerHandle CawTimerHandle;
 };

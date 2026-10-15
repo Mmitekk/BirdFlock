@@ -164,6 +164,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "1", EditCondition = "FlightDuration > 0"))
 	float DepartSpeedMultiplier = 1.8f;
 
+	/** Wing flap (animation) speed multiplier while departing.
+	 * Множитель скорости взмахов крыльев (анимации) при отлёте. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0.1", EditCondition = "FlightDuration > 0"))
+	float DepartAnimRateMultiplier = 1.5f;
+
+	/** Multiplier of the vertical bobbing amplitude while departing. 0 = straight flight without bobbing.
+	 * Множитель амплитуды покачивания при отлёте. 0 — летят по прямой без качания. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0", EditCondition = "FlightDuration > 0"))
+	float DepartBobMultiplier = 1.f;
+
 	/** Single Pass only: seconds before birds respawn (while the player is still in range).
 	 * Только Single Pass: секунды до повторного появления, пока игрок рядом. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0", EditCondition = "FlightMode == EBirdFlightMode::SinglePass"))

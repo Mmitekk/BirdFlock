@@ -114,6 +114,8 @@ unreal.EditorAssetLibrary.save_loaded_asset(bp)
 | `Flight Duration` | 45 | Секунд на сплайне, после чего птицы срываются и визит заканчивается. 0 = бесконечно |
 | `Depart Scatter Delay` | 2.5 | Птицы срываются по очереди в течение этого случайного окна, сек |
 | `Depart Speed Multiplier` | 1.8 | Разгон при отлёте: улетают быстрее, чем летают по маршруту |
+| `Depart Anim Rate Multiplier` | 1.5 | Скорость взмахов крыльев (анимации) при отлёте |
+| `Depart Bob Multiplier` | 1.0 | Амплитуда покачивания при отлёте; 0 — летят по прямой без качания |
 | `Single Pass Respawn Delay` | 8 | Пауза до повторного пролёта (Single Pass без отлёта) |
 | `Spline Preset Radius` | 800 | Радиус для кнопки-пресета окружности |
 | `Random Seed` | 0 | 0 = случайно каждый раз; число = воспроизводимая расстановка и броски |
@@ -291,6 +293,8 @@ Note: UE 5.2 Python cannot assign `TSoftObjectPtr` from a `SoftObjectPath` — p
 | `Flight Duration` | 45 | Seconds on the spline before the birds scatter away and the visit ends. 0 = fly forever |
 | `Depart Scatter Delay` | 2.5 | Departing birds join the departure within this random window, seconds |
 | `Depart Speed Multiplier` | 1.8 | Speed multiplier while departing — they flee faster than they cruise |
+| `Depart Anim Rate Multiplier` | 1.5 | Wing flap (animation) speed while departing |
+| `Depart Bob Multiplier` | 1.0 | Bobbing amplitude while departing; 0 — straight flight, no bobbing |
 | `Single Pass Respawn Delay` | 8 | Seconds before birds respawn after a completed pass (Single Pass without departure) |
 | `Spline Preset Radius` | 800 | Radius used by the circle preset button |
 | `Random Seed` | 0 | 0 = random each time; any other value = reproducible layout and rolls |
