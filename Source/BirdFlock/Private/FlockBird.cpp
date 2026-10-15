@@ -5,6 +5,7 @@
 #include "Components/SplineComponent.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundAttenuation.h"
+#include "TimerManager.h"
 
 namespace
 {
