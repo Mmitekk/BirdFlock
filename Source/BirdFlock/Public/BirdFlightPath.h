@@ -113,6 +113,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flock", meta = (ClampMin = "0"))
 	float BirdBobFrequency = 1.2f;
 
+	/** Yaw smoothing while turning: higher = snappier heading changes, lower = wide banking turns.
+	 * Сглаживание разворота: больше — резче смена курса, меньше — широкие плавные виражи. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flock", meta = (ClampMin = "0.5", ClampMax = "20"))
+	float BirdTurnSpeed = 4.f;
+
 	/** Extra yaw on top of flight direction, degrees. Use if birds fly sideways/backwards with your mesh.
 	 * Доворот по курсу поверх направления полёта, градусы. Если птица летит боком или хвостом вперёд — подберите значение. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flock", meta = (ClampMin = "-180", ClampMax = "180"))
@@ -174,40 +179,35 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "1000", ClampMax = "100000", EditCondition = "bApproachFromDistance"))
 	float ApproachDistance = 12000.f;
 
-	/** Seconds the flock keeps flying along the spline before the birds scatter away one by one, fly out of sight, and only then the flock despawns. 0 = fly forever.
-	 * Сколько секунд стая летает по сплайну, после чего птицы по одной срываются, улетают из виду, и только затем стая выгружается. 0 = летают бесконечно. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0"))
+	/** Loop mode: seconds the flock keeps circling before the birds scatter away one by one, fly out of sight, and only then the flock despawns. 0 = circle forever. In Single Pass and Ping-Pong birds depart right after completing the pass(es) — this setting does not apply.
+	 * Режим Loop: сколько секунд стая кружит, после чего птицы по одной срываются, улетают из виду, и только затем стая выгружается. 0 = кружат бесконечно. В Single Pass и Ping-Pong птицы улетают сразу после пролёта — этот параметр не действует. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0", EditCondition = "FlightMode == EBirdFlightMode::Loop"))
 	float FlightDuration = 45.f;
 
-	/** Departing birds join the departure within this random window, seconds.
-	 * Птицы срываются по очереди в течение этого случайного окна, секунды. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0", EditCondition = "FlightDuration > 0"))
+	/** Departing birds join the departure within this random window, seconds (all flight modes).
+	 * Птицы срываются по очереди в течение этого случайного окна, секунды (во всех режимах). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0"))
 	float DepartScatterDelay = 2.5f;
 
 	/** Speed multiplier while departing: they flee faster than they cruise.
 	 * Множитель скорости при отлёте: улетают быстрее, чем летают по маршруту. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "1", EditCondition = "FlightDuration > 0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "1"))
 	float DepartSpeedMultiplier = 1.8f;
 
 	/** Wing flap (animation) speed multiplier while departing.
 	 * Множитель скорости взмахов крыльев (анимации) при отлёте. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0.1", EditCondition = "FlightDuration > 0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0.1"))
 	float DepartAnimRateMultiplier = 1.5f;
 
 	/** Multiplier of the vertical bobbing amplitude while departing. 0 = straight flight without bobbing.
 	 * Множитель амплитуды покачивания при отлёте. 0 — летят по прямой без качания. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0", EditCondition = "FlightDuration > 0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0"))
 	float DepartBobMultiplier = 1.f;
 
-	/** On departure the flock flies away together in one direction (away from the player) instead of scattering in all directions.
-	 * При отлёте стая улетает вместе в одну сторону (от игрока), а не разлетается кто куда. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (EditCondition = "FlightDuration > 0"))
+	/** Loop mode only: on departure the flock flies away together in one direction (away from the player) instead of scattering in all directions. Single Pass and Ping-Pong always depart along their movement direction.
+	 * Только Loop: при отлёте стая улетает вместе в одну сторону (от игрока), а не разлетается кто куда. Single Pass и Ping-Pong всегда улетают по направлению своего движения. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (EditCondition = "FlightMode == EBirdFlightMode::Loop"))
 	bool bDepartInOneDirection = false;
-
-	/** Single Pass only: seconds before birds respawn (while the player is still in range).
-	 * Только Single Pass: секунды до повторного появления, пока игрок рядом. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0", EditCondition = "FlightMode == EBirdFlightMode::SinglePass"))
-	float SinglePassRespawnDelay = 8.f;
 
 	/** Radius used by the "Spline Preset: Circle" button.
 	 * Радиус для кнопки пресета окружности. */
@@ -277,6 +277,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Birds|Debug")
 	TArray<TObjectPtr<AFlockBird>> ActiveBirds;
 
+	/** GC anchors for the animation assets birds play while the flock is alive.
+	 * Якоря для GC: ассеты анимаций, пока стая жива. */
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Birds|Debug")
+	TObjectPtr<UAnimationAsset> LoadedCruiseAnim = nullptr;
+
+	/** GC anchor for the optional glide animation. / Якорь для GC необязательной анимации планирования. */
+	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Birds|Debug")
+	TObjectPtr<UAnimationAsset> LoadedGlideAnim = nullptr;
+
 	// -------------------------------------------- Editor buttons / Кнопки редактора
 
 	/** Rebuild the spline as a horizontal circle (Long Dark style circling).
@@ -303,7 +312,6 @@ private:
 	{
 		Idle,
 		Active,
-		WaitingRespawn,
 		DoneForever
 	};
 
@@ -316,7 +324,6 @@ private:
 
 	EFlockState FlockState = EFlockState::Idle;
 	float RetryCountdown = 0.f;
-	float RespawnCountdown = 0.f;
 	FRandomStream Rng;
 
 	/** Session-only: a one-shot flock already appeared (the BP event has fired).

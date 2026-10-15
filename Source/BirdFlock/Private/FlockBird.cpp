@@ -1,5 +1,6 @@
 #include "FlockBird.h"
 #include "BirdFlightPath.h"
+#include "Animation/AnimationAsset.h"
 #include "Components/AudioComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SplineComponent.h"
@@ -115,8 +116,18 @@ void AFlockBird::StartDeparture()
 			Outward = Flat.GetSafeNormal();
 		}
 	}
-	Outward = Outward.RotateAngleAxis(DepartYawJitterDeg, FVector::UpVector);
-	DepartDirection = (Outward + FVector(0.f, 0.f, DepartClimb)).GetSafeNormal();
+	BeginDepartureAlong(Outward);
+}
+
+void AFlockBird::BeginDepartureAlong(FVector Direction)
+{
+	Direction.Z = 0.f;
+	if (Direction.SizeSquared() > 1.f)
+	{
+		Direction = Direction.GetSafeNormal();
+	}
+	Direction = Direction.RotateAngleAxis(DepartYawJitterDeg, FVector::UpVector);
+	DepartDirection = (Direction + FVector(0.f, 0.f, DepartClimb)).GetSafeNormal();
 	// Fleeing birds always flap: break out of a glide before leaving.
 	// Убегающие птицы всегда машут: выходим из планирования перед отлётом.
 	if (bCurrentlyGliding)
@@ -125,7 +136,7 @@ void AFlockBird::StartDeparture()
 		CycleTimer = 0.f;
 		if (CruiseAnimAsset)
 		{
-			MeshComponent->SetAnimation(CruiseAnimAsset.Get());
+			MeshComponent->SetAnimation(CruiseAnimAsset);
 			MeshComponent->Play(true);
 		}
 	}
@@ -134,6 +145,23 @@ void AFlockBird::StartDeparture()
 	DepartBaseLocation = GetActorLocation();
 	MeshComponent->SetPlayRate(BasePlayRate * FMath::Max(DepartAnimRateMultiplier, 0.1f));
 	bDeparting = true;
+}
+
+void AFlockBird::ApplyFacing(float TargetYaw, float DeltaSeconds)
+{
+	const FRotator Target(0.f, TargetYaw, 0.f);
+	if (bFacingInitialized)
+	{
+		// Smooth banking-style turn instead of an instant snap.
+		// Плавный вираж вместо мгновенного доворота.
+		CurrentRotation = FMath::RInterpTo(CurrentRotation, Target, DeltaSeconds, FMath::Max(TurnSpeed, 0.1f));
+	}
+	else
+	{
+		CurrentRotation = Target;
+		bFacingInitialized = true;
+	}
+	SetActorRotation(CurrentRotation);
 }
 
 void AFlockBird::Tick(float DeltaSeconds)
@@ -162,7 +190,7 @@ void AFlockBird::Tick(float DeltaSeconds)
 		const FVector ApproachDir = ApproachTarget - ApproachStart;
 		if (!ApproachDir.IsNearlyZero())
 		{
-			SetActorRotation(FRotator(0.f, ApproachDir.Rotation().Yaw + YawOffsetDeg, 0.f));
+			ApplyFacing(ApproachDir.Rotation().Yaw + YawOffsetDeg, DeltaSeconds);
 		}
 
 		if (Alpha >= 1.f)
@@ -183,8 +211,7 @@ void AFlockBird::Tick(float DeltaSeconds)
 
 		if (!DepartDirection.IsNearlyZero())
 		{
-			const float Yaw = DepartDirection.Rotation().Yaw + YawOffsetDeg;
-			SetActorRotation(FRotator(0.f, Yaw, 0.f));
+			ApplyFacing(DepartDirection.Rotation().Yaw + YawOffsetDeg, DeltaSeconds);
 		}
 
 		if (DepartTime > DepartSafetySeconds ||
@@ -217,7 +244,7 @@ void AFlockBird::Tick(float DeltaSeconds)
 		{
 			CycleTimer = 0.f;
 			bCurrentlyGliding = !bCurrentlyGliding;
-			MeshComponent->SetAnimation(bCurrentlyGliding ? GlideAnimAsset.Get() : CruiseAnimAsset.Get());
+			MeshComponent->SetAnimation(bCurrentlyGliding ? GlideAnimAsset : CruiseAnimAsset);
 			MeshComponent->Play(true);
 		}
 	}
@@ -249,10 +276,18 @@ void AFlockBird::Tick(float DeltaSeconds)
 		{
 			DistanceAlongSpline = SplineLength - (DistanceAlongSpline - SplineLength);
 			bPingPongReverse = true;
+			bPingPongReturning = true;
 		}
 		else if (DistanceAlongSpline <= 0.f)
 		{
 			DistanceAlongSpline = -DistanceAlongSpline;
+			if (bPingPongReturning)
+			{
+				// Round trip complete: depart on the current (backward) heading.
+				// Круг замкнут: отлёт по текущему (обратному) курсу.
+				BeginDepartureAlong(-Spline->GetDirectionAtDistanceAlongSpline(0.f, ESplineCoordinateSpace::World));
+				return;
+			}
 			bPingPongReverse = false;
 		}
 		break;
@@ -261,9 +296,9 @@ void AFlockBird::Tick(float DeltaSeconds)
 		if (DistanceAlongSpline >= SplineLength)
 		{
 			DistanceAlongSpline = SplineLength;
-			bFinished = true;
-			MeshComponent->SetVisibility(false, true);
-			SetActorTickEnabled(false);
+			// Pass complete: depart along the heading the bird had at the path end.
+			// Пролёт окончен: отлёт по направлению движения в конце пути.
+			BeginDepartureAlong(Spline->GetDirectionAtDistanceAlongSpline(SplineLength, ESplineCoordinateSpace::World));
 			return;
 		}
 		break;
@@ -277,7 +312,6 @@ void AFlockBird::Tick(float DeltaSeconds)
 
 	if (!Direction.IsNearlyZero())
 	{
-		const float Yaw = Direction.Rotation().Yaw + YawOffsetDeg;
-		SetActorRotation(FRotator(0.f, Yaw, 0.f));
+		ApplyFacing(Direction.Rotation().Yaw + YawOffsetDeg, DeltaSeconds);
 	}
 }

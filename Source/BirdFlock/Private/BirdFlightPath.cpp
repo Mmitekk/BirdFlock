@@ -146,59 +146,9 @@ void ABirdFlightPath::Tick(float DeltaSeconds)
 
 		if (AllBirdsFinished())
 		{
-			if (FlightDuration > 0.f)
-			{
-				// The flock departed on its own; a natural end of the visit, the
-				// next appearance is a fresh trigger with its own probability roll.
-				DeactivateFlock(true);
-			}
-			else if (FlightMode == EBirdFlightMode::SinglePass)
-			{
-				for (TObjectPtr<AFlockBird>& Bird : ActiveBirds)
-				{
-					if (Bird)
-					{
-						Bird->Destroy();
-					}
-				}
-				ActiveBirds.Reset();
-
-				if (FlockAudio && FlockAudio->IsPlaying())
-				{
-					FlockAudio->Stop();
-				}
-
-				if (bTriggerOnlyOnce)
-				{
-					FlockState = EFlockState::DoneForever;
-				}
-				else
-				{
-					FlockState = EFlockState::WaitingRespawn;
-					RespawnCountdown = FMath::Max(SinglePassRespawnDelay, 0.f);
-				}
-			}
-		}
-		break;
-	}
-
-	case EFlockState::WaitingRespawn:
-	{
-		if (Distance > GetEffectiveDeactivateDistance())
-		{
-			FlockState = (bTriggerOnlyOnce || !bRetriggerAfterDeactivate) ? EFlockState::DoneForever : EFlockState::Idle;
-			RetryCountdown = 0.f;
-			break;
-		}
-
-		if (Distance <= TriggerDistanceMax)
-		{
-			RespawnCountdown -= DeltaSeconds;
-			if (RespawnCountdown <= 0.f)
-			{
-				// The flock already won its roll; respawn without rolling again.
-				ActivateFlock();
-			}
+			// Every mode ends its visit with a real departure: duration-based in
+			// Loop, right after the pass(es) in Single Pass and Ping-Pong.
+			DeactivateFlock(true);
 		}
 		break;
 	}
@@ -271,6 +221,10 @@ void ABirdFlightPath::ActivateFlock()
 	const float SplineLength = FlightSpline->GetSplineLength();
 	ActiveBirds.Reset();
 
+	// Keep the cruise/glide assets alive for the whole visit; birds hold raw pointers.
+	LoadedCruiseAnim = MainAnim ? MainAnim : AltAnim;
+	LoadedGlideAnim = (MainAnim && AltAnim) ? AltAnim : nullptr;
+
 	// Resolve sound attenuation once: asset override or runtime sphere falloff.
 	// Shared by the flock ambience and every per-bird caw.
 	USoundAttenuation* AttenuationAsset = FlockSoundAttenuationOverride.LoadSynchronous();
@@ -332,9 +286,9 @@ void ABirdFlightPath::ActivateFlock()
 			Bird->MeshComponent->Play(true);
 
 			// Glide cycling assets: without it birds flap the main animation non-stop.
-			Bird->CruiseAnimAsset = Anim;
-			Bird->GlideAnimAsset = (MainAnim && AltAnim && Anim != AltAnim) ? AltAnim : nullptr;
-			Bird->bAlternateGlide = Bird->GlideAnimAsset != nullptr && bBirdsAlternateGlide;
+			Bird->CruiseAnimAsset = LoadedCruiseAnim;
+			Bird->GlideAnimAsset = LoadedGlideAnim;
+			Bird->bAlternateGlide = LoadedGlideAnim != nullptr && bBirdsAlternateGlide;
 			Bird->FlapCycleSeconds = FMath::Max(BirdFlapSeconds, 0.5f) * Rng.FRandRange(0.75f, 1.35f);
 			Bird->GlideCycleSeconds = FMath::Max(BirdGlideSeconds, 0.5f) * Rng.FRandRange(0.75f, 1.35f);
 			Bird->CycleTimer = Rng.FRandRange(0.f, Bird->FlapCycleSeconds);
@@ -363,6 +317,7 @@ void ABirdFlightPath::ActivateFlock()
 		Bird->BobFrequency = BirdBobFrequency * Rng.FRandRange(0.8f, 1.3f);
 		Bird->BobPhase = Rng.FRand();
 		Bird->YawOffsetDeg = BirdYawOffsetDeg;
+		Bird->TurnSpeed = BirdTurnSpeed;
 
 		Bird->FlightDuration = FlightDuration;
 		Bird->DepartDelay = Rng.FRandRange(0.f, FMath::Max(DepartScatterDelay, 0.f));
@@ -477,6 +432,11 @@ void ABirdFlightPath::DeactivateFlock(bool bFlewAway)
 
 	FlockState = (bTriggerOnlyOnce || !bRetriggerAfterDeactivate) ? EFlockState::DoneForever : EFlockState::Idle;
 	RetryCountdown = 0.f;
+
+	// Release the animation GC anchors.
+	// Отпускаем якоря анимаций.
+	LoadedCruiseAnim = nullptr;
+	LoadedGlideAnim = nullptr;
 }
 
 void ABirdFlightPath::EndPlay(const EEndPlayReason::Type EndPlayReason)

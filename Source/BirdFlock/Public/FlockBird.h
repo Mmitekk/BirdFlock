@@ -8,6 +8,7 @@
 class USkeletalMeshComponent;
 class USplineComponent;
 class UAudioComponent;
+class UAnimationAsset;
 class USoundBase;
 class USoundAttenuation;
 struct FSoundAttenuationSettings;
@@ -85,15 +86,13 @@ public:
 	 * Скорость анимации на маршруте; при отлёте умножается на DepartAnimRateMultiplier. */
 	float BasePlayRate = 1.f;
 
-	/** Flap animation used while cruising; the bird always flaps unless glide cycling is on.
-	 * Анимация взмахов на маршруте; птица машет всегда, если не включено чередование с планированием. */
-	UPROPERTY()
-	TObjectPtr<UAnimationAsset> CruiseAnimAsset = nullptr;
+	/** Flap animation used while cruising; the bird always flaps unless glide cycling is on. Anchored by the path actor while the flock is alive.
+	 * Анимация взмахов на маршруте; птица машет всегда, если не включено чередование с планированием. Живёт, пока менеджер держит ассеты. */
+	UAnimationAsset* CruiseAnimAsset = nullptr;
 
 	/** Optional glide animation for flap/glide cycling on the spline.
 	 * Необязательная анимация планирования для чередования на маршруте. */
-	UPROPERTY()
-	TObjectPtr<UAnimationAsset> GlideAnimAsset = nullptr;
+	UAnimationAsset* GlideAnimAsset = nullptr;
 
 	/** Alternate flapping and gliding while cruising (requires GlideAnimAsset).
 	 * Чередовать взмахи и планирование на маршруте (требует GlideAnimAsset). */
@@ -106,6 +105,10 @@ public:
 	/** Seconds this bird glides before flapping again (randomized by the spawner).
 	 * Сколько секунд птица планирует до возврата к взмахам (рандомизируется спавнером). */
 	float GlideCycleSeconds = 2.f;
+
+	/** Yaw smoothing while turning: higher = snappier heading changes, lower = wide banking turns.
+	 * Сглаживание разворота: больше — резче смена курса, меньше — широкие плавные виражи. */
+	float TurnSpeed = 4.f;
 
 	/** Current flap/glide cycle timer (random start phase set by the spawner).
 	 * Таймер текущей фазы взмах/планирование (спавнер задаёт случайную стартовую фазу). */
@@ -133,8 +136,8 @@ public:
 	 * Отлёт в одном направлении: вся стая улетает прочь от игрока вместе. */
 	bool bDepartInOneDirection = false;
 
-	/** Bird reached the spline end (Single Pass) or flew away beyond sight (departure).
-	 * Птица дошла до конца сплайна (Single Pass) или улетела из виду (отлёт). */
+	/** Departure finished: the bird flew away beyond sight.
+	 * Отлёт завершён: птица улетела из виду. */
 	bool bFinished = false;
 
 	virtual void Tick(float DeltaSeconds) override;
@@ -152,12 +155,17 @@ private:
 	void PlayCaw();
 
 	void StartDeparture();
+	void BeginDepartureAlong(FVector Direction);
+	void ApplyFacing(float TargetYaw, float DeltaSeconds);
 
 	float TimeAlive = 0.f;
 	bool bDeparting = false;
 	bool bCurrentlyGliding = false;
+	bool bPingPongReturning = false;
+	bool bFacingInitialized = false;
 	float FlightTime = 0.f;
 	float DepartTime = 0.f;
+	FRotator CurrentRotation = FRotator::ZeroRotator;
 	FVector DepartDirection = FVector::ZeroVector;
 	FVector DepartBaseLocation = FVector::ZeroVector;
 	FTimerHandle CawTimerHandle;

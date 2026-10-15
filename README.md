@@ -21,7 +21,7 @@
 ## Возможности
 
 - **Траектории по сплайнам** — точки редактируются во вьюпорте; кнопки-пресеты **Circle** и **Line**.
-- **Три режима полёта** — *Loop* (бесконечное кружение, разомкнутая траектория замыкается прямой), *Single Pass* (один пролёт и повтор через паузу) и *Ping-Pong* (туда-обратно).
+- **Три режима полёта** — *Loop* (кружение; после `Flight Duration` стая улетает), *Single Pass* (пролёт от начала до конца и отлёт по направлению движения) и *Ping-Pong* (туда-обратно, после возврата — отлёт по курсу).
 - **Триггер приближения** — кольцо дистанций [мин..макс], вероятность появления и автоматические повторные проверки, пока игрок в зоне.
 - **Прилёт издали** — птицы не появляются на сплайне, а прилетают с настраиваемого расстояния от игрока, из-за пределов видимости.
 - **Реалистичный отлёт** — через заданное время полёта птицы по одной срываются, улетают из виду, и только потом стая выгружается; разлетаются кто куда или уходят вместе в одну сторону (от игрока).
@@ -91,6 +91,7 @@ unreal.EditorAssetLibrary.save_loaded_asset(bp)
 | `Bird Speed Min/Max` | 220 / 320 | Скорость полёта по сплайну, см/с |
 | `Bird Offset Radius` | 150 | Максимальное случайное смещение от точки сплайна, см (разброс стаи) |
 | `Bird Bob Amplitude/Frequency` | 25 / 1.2 | Покачивание по вертикали, см и Гц |
+| `Bird Turn Speed` | 4 | Плавность разворота: больше — резче смена курса, меньше — широкие виражи |
 | `Bird Yaw Offset Deg` | 0 | Доворот по курсу; лечит меши, свёрстанные боком или хвостом вперёд |
 
 ### Birds|Trigger (Триггер)
@@ -117,13 +118,12 @@ unreal.EditorAssetLibrary.save_loaded_asset(bp)
 | `Flight Mode` | Loop | Loop / Single Pass / Ping-Pong |
 | `Approach From Distance` | вкл | Птицы прилетают издалека (кольцо вокруг игрока), а не появляются на сплайне |
 | `Approach Distance` | 12000 | С какого расстояния от игрока начинается подлёт, см (±15% разброс) |
-| `Flight Duration` | 45 | Секунд на сплайне, после чего птицы срываются и визит заканчивается. 0 = бесконечно |
+| `Flight Duration` | 45 | Только Loop: секунд кружения перед отлётом; 0 = бесконечно. В Single Pass и Ping-Pong птицы улетают сразу после прохода |
 | `Depart Scatter Delay` | 2.5 | Птицы срываются по очереди в течение этого случайного окна, сек |
 | `Depart Speed Multiplier` | 1.8 | Разгон при отлёте: улетают быстрее, чем летают по маршруту |
 | `Depart Anim Rate Multiplier` | 1.5 | Скорость взмахов крыльев (анимации) при отлёте |
 | `Depart Bob Multiplier` | 1.0 | Амплитуда покачивания при отлёте; 0 — летят по прямой без качания |
-| `Depart In One Direction` | выкл | При отлёте стая улетает вместе в одну сторону (от игрока) вместо разлёта кто куда |
-| `Single Pass Respawn Delay` | 8 | Пауза до повторного пролёта (Single Pass без отлёта) |
+| `Depart In One Direction` | выкл | Только Loop: стая улетает вместе в одну сторону (от игрока). Single Pass и Ping-Pong всегда улетают по направлению движения |
 | `Spline Preset Radius` | 800 | Радиус для кнопки-пресета окружности |
 | `Random Seed` | 0 | 0 = случайно каждый раз; число = воспроизводимая расстановка и броски |
 
@@ -207,7 +207,7 @@ either flies away out of sight or despawns by distance.
 ## Features
 
 - **Spline flight paths** — edit points in the viewport; **Circle** and **Line** preset buttons.
-- **Three flight modes** — *Loop* (endless circling, open splines are closed by a straight return leg), *Single Pass* (fly through, respawn after a delay) and *Ping-Pong*.
+- **Three flight modes** — *Loop* (circling until the departure timer fires), *Single Pass* (fly start→end, then depart along the movement direction) and *Ping-Pong* (start→end→start, then depart).
 - **Proximity trigger** — a [min..max] distance band, appearance probability and automatic retries while the player stays in the band.
 - **Fly-in from afar** — birds don't pop up on the spline; they arrive from a configurable distance away, beyond the player's sight.
 - **Realistic departure** — after a configurable flight duration the birds scatter away one by one, fly out of sight, and only then the flock despawns; they either scatter in all directions or leave together in one direction (away from the player).
@@ -277,6 +277,7 @@ Note: UE 5.2 Python cannot assign `TSoftObjectPtr` from a `SoftObjectPath` — p
 | `Bird Speed Min/Max` | 220 / 320 | Flight speed along the spline, cm/s |
 | `Bird Offset Radius` | 150 | Max random offset from the spline point, cm (flock spread) |
 | `Bird Bob Amplitude/Frequency` | 25 / 1.2 | Vertical bobbing, cm and Hz |
+| `Bird Turn Speed` | 4 | Yaw smoothing while turning: higher = snappier, lower = wide banking turns |
 | `Bird Yaw Offset Deg` | 0 | Extra yaw on top of flight direction; fixes meshes authored sideways/backwards |
 
 ### Birds|Trigger
@@ -303,13 +304,12 @@ Note: UE 5.2 Python cannot assign `TSoftObjectPtr` from a `SoftObjectPath` — p
 | `Flight Mode` | Loop | Loop / Single Pass / Ping-Pong |
 | `Approach From Distance` | On | Birds fly in from a ring around the player instead of popping up on the spline |
 | `Approach Distance` | 12000 | How far from the player the fly-in starts, cm (±15% spread) |
-| `Flight Duration` | 45 | Seconds on the spline before the birds scatter away and the visit ends. 0 = fly forever |
+| `Flight Duration` | 45 | Loop only: seconds of circling before departure; 0 = forever. In Single Pass and Ping-Pong birds depart right after completing the pass |
 | `Depart Scatter Delay` | 2.5 | Departing birds join the departure within this random window, seconds |
 | `Depart Speed Multiplier` | 1.8 | Speed multiplier while departing — they flee faster than they cruise |
 | `Depart Anim Rate Multiplier` | 1.5 | Wing flap (animation) speed while departing |
 | `Depart Bob Multiplier` | 1.0 | Bobbing amplitude while departing; 0 — straight flight, no bobbing |
-| `Depart In One Direction` | Off | On departure the flock leaves together in one direction (away from the player) instead of scattering |
-| `Single Pass Respawn Delay` | 8 | Seconds before birds respawn after a completed pass (Single Pass without departure) |
+| `Depart In One Direction` | Off | Loop only: the flock leaves together in one direction (away from the player). Single Pass and Ping-Pong always depart along their movement direction |
 | `Spline Preset Radius` | 800 | Radius used by the circle preset button |
 | `Random Seed` | 0 | 0 = random each time; any other value = reproducible layout and rolls |
 
