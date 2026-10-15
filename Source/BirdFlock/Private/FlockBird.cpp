@@ -3,6 +3,8 @@
 #include "Components/AudioComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SplineComponent.h"
+#include "GameFramework/Pawn.h"
+#include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundAttenuation.h"
 #include "TimerManager.h"
@@ -88,11 +90,23 @@ void AFlockBird::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AFlockBird::StartDeparture()
 {
-	const ABirdFlightPath* Path = OwnerPath.Get();
-
-	// Fly away from the spline center, with a per-bird yaw scatter and a slight climb.
+	// Scatter mode: fly away from the spline center. One-direction mode: the whole
+	// flock flees directly away from the player. A small per-bird yaw scatter and
+	// a slight climb are applied on top either way.
 	FVector Outward(1.f, 0.f, 0.f);
-	if (Path)
+	if (bDepartInOneDirection)
+	{
+		if (const APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0))
+		{
+			FVector Away = GetActorLocation() - Player->GetActorLocation();
+			Away.Z = 0.f;
+			if (Away.SizeSquared() > 1.f)
+			{
+				Outward = Away.GetSafeNormal();
+			}
+		}
+	}
+	else if (const ABirdFlightPath* Path = OwnerPath.Get())
 	{
 		const FVector FromPath = GetActorLocation() - Path->GetActorLocation();
 		const FVector Flat(FromPath.X, FromPath.Y, 0.f);
@@ -122,6 +136,29 @@ void AFlockBird::Tick(float DeltaSeconds)
 
 	TimeAlive += DeltaSeconds;
 	const float Bob = FMath::Sin((TimeAlive * BobFrequency + BobPhase) * 2.f * PI) * BobAmplitude;
+
+	// ------- Approach: fly in from beyond the player's sight to the spline slot.
+	// ------- Подлёт: птица летит к своему месту на сплайне издалека.
+	if (bApproaching)
+	{
+		ApproachTime += DeltaSeconds;
+		const float Alpha = (ApproachDuration > KINDA_SMALL_NUMBER)
+			? FMath::Clamp(ApproachTime / ApproachDuration, 0.f, 1.f)
+			: 1.f;
+		SetActorLocation(FMath::Lerp(ApproachStart, ApproachTarget, Alpha) + FVector(0.f, 0.f, Bob));
+
+		const FVector ApproachDir = ApproachTarget - ApproachStart;
+		if (!ApproachDir.IsNearlyZero())
+		{
+			SetActorRotation(FRotator(0.f, ApproachDir.Rotation().Yaw + YawOffsetDeg, 0.f));
+		}
+
+		if (Alpha >= 1.f)
+		{
+			bApproaching = false;
+		}
+		return;
+	}
 
 	// ------- Departure: a straight line away from the spline until out of sight.
 	// ------- Отлёт: прямая линия от сплайна, пока птица не скроется из виду.

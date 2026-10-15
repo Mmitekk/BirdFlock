@@ -298,6 +298,9 @@ void ABirdFlightPath::ActivateFlock()
 	const bool bUsePerBirdSounds = BirdSounds.Num() > 0;
 	const int32 NumBirdsToSpawn = bUsePerBirdSounds ? BirdSounds.Num() : BirdCount;
 
+	// Fly-in setup needs the player: birds spawn on a ring around them, beyond sight.
+	const APawn* ApproachPlayer = bApproachFromDistance ? UGameplayStatics::GetPlayerPawn(this, 0) : nullptr;
+
 	for (int32 i = 0; i < NumBirdsToSpawn; ++i)
 	{
 		FActorSpawnParameters Params;
@@ -335,7 +338,16 @@ void ABirdFlightPath::ActivateFlock()
 		}
 
 		Bird->OwnerPath = this;
-		Bird->DistanceAlongSpline = SplineLength * Rng.FRand();
+		// Loop joins at random spots around the circle; the pass modes queue up at
+		// the path start so the flight begins from the actual beginning.
+		if (FlightMode == EBirdFlightMode::Loop)
+		{
+			Bird->DistanceAlongSpline = SplineLength * Rng.FRand();
+		}
+		else
+		{
+			Bird->DistanceAlongSpline = FMath::Fmod(i * 250.f, FMath::Max(SplineLength, 1.f));
+		}
 		Bird->Speed = Rng.FRandRange(FMath::Min(BirdSpeedMin, BirdSpeedMax), FMath::Max(BirdSpeedMin, BirdSpeedMax));
 
 		const float Angle = Rng.FRandRange(0.f, 2.f * PI);
@@ -353,7 +365,28 @@ void ABirdFlightPath::ActivateFlock()
 		Bird->DepartSpeedMultiplier = DepartSpeedMultiplier;
 		Bird->DepartAnimRateMultiplier = DepartAnimRateMultiplier;
 		Bird->DepartBobMultiplier = DepartBobMultiplier;
+		Bird->bDepartInOneDirection = bDepartInOneDirection;
 		Bird->DepartYawJitterDeg = Rng.FRandRange(-15.f, 15.f);
+
+		if (ApproachPlayer)
+		{
+			// Spawn on a ring around the player, beyond sight, and fly in to the slot
+			// at the spline's altitude. A distance jitter makes the arrivals stagger.
+			const float ApproachAngle = Rng.FRandRange(0.f, 2.f * PI);
+			const float StartDistance = FMath::Max(ApproachDistance, 1000.f) * Rng.FRandRange(0.85f, 1.15f);
+			const FVector SlotLocation = FlightSpline->GetLocationAtDistanceAlongSpline(
+				Bird->DistanceAlongSpline, ESplineCoordinateSpace::World) + Bird->LateralOffset;
+			FVector SpawnPos = ApproachPlayer->GetActorLocation() +
+				FVector(FMath::Cos(ApproachAngle), FMath::Sin(ApproachAngle), 0.f) * StartDistance;
+			SpawnPos.Z = SlotLocation.Z;
+
+			Bird->SetActorLocation(SpawnPos);
+			Bird->bApproaching = true;
+			Bird->ApproachStart = SpawnPos;
+			Bird->ApproachTarget = SlotLocation;
+			Bird->ApproachTime = 0.f;
+			Bird->ApproachDuration = FVector::Dist(SpawnPos, SlotLocation) / FMath::Max(Bird->Speed, 1.f);
+		}
 
 		if (bUsePerBirdSounds)
 		{

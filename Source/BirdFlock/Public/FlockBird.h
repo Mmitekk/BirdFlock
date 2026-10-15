@@ -93,6 +93,20 @@ public:
 	 * Только для ping-pong: сейчас летит назад. */
 	bool bPingPongReverse = false;
 
+	/** Fly-in phase: the bird is still converging to its spline slot from afar.
+	 * Фаза подлёта: птица ещё летит к своему месту на сплайне издалека. */
+	bool bApproaching = false;
+
+	/** Approach line and timing, set by the spawner. / Линия подлёта и тайминг, задаёт спавнер. */
+	FVector ApproachStart = FVector::ZeroVector;
+	FVector ApproachTarget = FVector::ZeroVector;
+	float ApproachTime = 0.f;
+	float ApproachDuration = 0.f;
+
+	/** One-direction departure: the whole flock flees away from the player together.
+	 * Отлёт в одном направлении: вся стая улетает прочь от игрока вместе. */
+	bool bDepartInOneDirection = false;
+
 	/** Bird reached the spline end (Single Pass) or flew away beyond sight (departure).
 	 * Птица дошла до конца сплайна (Single Pass) или улетела из виду (отлёт). */
 	bool bFinished = false;

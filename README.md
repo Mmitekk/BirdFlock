@@ -23,7 +23,8 @@
 - **Траектории по сплайнам** — точки редактируются во вьюпорте; кнопки-пресеты **Circle** и **Line**.
 - **Три режима полёта** — *Loop* (бесконечное кружение, разомкнутая траектория замыкается прямой), *Single Pass* (один пролёт и повтор через паузу) и *Ping-Pong* (туда-обратно).
 - **Триггер приближения** — кольцо дистанций [мин..макс], вероятность появления и автоматические повторные проверки, пока игрок в зоне.
-- **Реалистичный отлёт** — через заданное время полёта птицы по одной срываются, улетают из виду, и только потом стая выгружается.
+- **Прилёт издали** — птицы не появляются на сплайне, а прилетают с настраиваемого расстояния от игрока, из-за пределов видимости.
+- **Реалистичный отлёт** — через заданное время полёта птицы по одной срываются, улетают из виду, и только потом стая выгружается; разлетаются кто куда или уходят вместе в одну сторону (от игрока).
 - **Слоты звука на каждую птицу** — массив cue'ов: длина массива = количество птиц, у каждой свой приаттаченный звук со случайными повторами; плюс опциональный общий фоновый loop.
 - **Единоразовый режим для сейвов** — галочка и BP-событие, которое стреляет в момент фактического появления стаи; сохранение реализуете сами.
 - **Полная настройка птиц** — меш, одиночная анимация (+ вторая «планирующая»), замена на AnimBP, рандомизация масштаба/скорости/смещений, поправка разворота меша.
@@ -111,11 +112,14 @@ unreal.EditorAssetLibrary.save_loaded_asset(bp)
 | Параметр | Дефолт | Описание |
 |---|---|---|
 | `Flight Mode` | Loop | Loop / Single Pass / Ping-Pong |
+| `Approach From Distance` | вкл | Птицы прилетают издалека (кольцо вокруг игрока), а не появляются на сплайне |
+| `Approach Distance` | 12000 | С какого расстояния от игрока начинается подлёт, см (±15% разброс) |
 | `Flight Duration` | 45 | Секунд на сплайне, после чего птицы срываются и визит заканчивается. 0 = бесконечно |
 | `Depart Scatter Delay` | 2.5 | Птицы срываются по очереди в течение этого случайного окна, сек |
 | `Depart Speed Multiplier` | 1.8 | Разгон при отлёте: улетают быстрее, чем летают по маршруту |
 | `Depart Anim Rate Multiplier` | 1.5 | Скорость взмахов крыльев (анимации) при отлёте |
 | `Depart Bob Multiplier` | 1.0 | Амплитуда покачивания при отлёте; 0 — летят по прямой без качания |
+| `Depart In One Direction` | выкл | При отлёте стая улетает вместе в одну сторону (от игрока) вместо разлёта кто куда |
 | `Single Pass Respawn Delay` | 8 | Пауза до повторного пролёта (Single Pass без отлёта) |
 | `Spline Preset Radius` | 800 | Радиус для кнопки-пресета окружности |
 | `Random Seed` | 0 | 0 = случайно каждый раз; число = воспроизводимая расстановка и броски |
@@ -202,7 +206,8 @@ either flies away out of sight or despawns by distance.
 - **Spline flight paths** — edit points in the viewport; **Circle** and **Line** preset buttons.
 - **Three flight modes** — *Loop* (endless circling, open splines are closed by a straight return leg), *Single Pass* (fly through, respawn after a delay) and *Ping-Pong*.
 - **Proximity trigger** — a [min..max] distance band, appearance probability and automatic retries while the player stays in the band.
-- **Realistic departure** — after a configurable flight duration the birds scatter away one by one, fly out of sight, and only then the flock despawns.
+- **Fly-in from afar** — birds don't pop up on the spline; they arrive from a configurable distance away, beyond the player's sight.
+- **Realistic departure** — after a configurable flight duration the birds scatter away one by one, fly out of sight, and only then the flock despawns; they either scatter in all directions or leave together in one direction (away from the player).
 - **Per-bird sound slots** — an array of cues: array length = bird count, every bird carries its own attached audio replaying at random intervals; optional shared ambience loop.
 - **One-shot mode for save systems** — a checkbox plus a BlueprintImplementableEvent fired when the one-shot flock actually appears, so you can persist it yourself.
 - **Fully configurable birds** — mesh, single-node animation (+ optional second "glide" animation), AnimBP override, scale/speed/offset randomization, yaw correction for meshes authored off-axis.
@@ -290,11 +295,14 @@ Note: UE 5.2 Python cannot assign `TSoftObjectPtr` from a `SoftObjectPath` — p
 | Property | Default | Description |
 |---|---|---|
 | `Flight Mode` | Loop | Loop / Single Pass / Ping-Pong |
+| `Approach From Distance` | On | Birds fly in from a ring around the player instead of popping up on the spline |
+| `Approach Distance` | 12000 | How far from the player the fly-in starts, cm (±15% spread) |
 | `Flight Duration` | 45 | Seconds on the spline before the birds scatter away and the visit ends. 0 = fly forever |
 | `Depart Scatter Delay` | 2.5 | Departing birds join the departure within this random window, seconds |
 | `Depart Speed Multiplier` | 1.8 | Speed multiplier while departing — they flee faster than they cruise |
 | `Depart Anim Rate Multiplier` | 1.5 | Wing flap (animation) speed while departing |
 | `Depart Bob Multiplier` | 1.0 | Bobbing amplitude while departing; 0 — straight flight, no bobbing |
+| `Depart In One Direction` | Off | On departure the flock leaves together in one direction (away from the player) instead of scattering |
 | `Single Pass Respawn Delay` | 8 | Seconds before birds respawn after a completed pass (Single Pass without departure) |
 | `Spline Preset Radius` | 800 | Radius used by the circle preset button |
 | `Random Seed` | 0 | 0 = random each time; any other value = reproducible layout and rolls |

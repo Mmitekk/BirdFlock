@@ -149,6 +149,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight")
 	EBirdFlightMode FlightMode = EBirdFlightMode::Loop;
 
+	/** Birds fly in from beyond the player's sight instead of popping up right on the spline.
+	 * Птицы прилетают издалека, из-за пределов видимости игрока, а не появляются прямо на сплайне. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight")
+	bool bApproachFromDistance = true;
+
+	/** How far from the player the fly-in starts, cm.
+	 * С какого расстояния от игрока птицы стартуют полёт к сплайну, см. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "1000", ClampMax = "100000", EditCondition = "bApproachFromDistance"))
+	float ApproachDistance = 12000.f;
+
 	/** Seconds the flock keeps flying along the spline before the birds scatter away one by one, fly out of sight, and only then the flock despawns. 0 = fly forever.
 	 * Сколько секунд стая летает по сплайну, после чего птицы по одной срываются, улетают из виду, и только затем стая выгружается. 0 = летают бесконечно. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0"))
@@ -173,6 +183,11 @@ public:
 	 * Множитель амплитуды покачивания при отлёте. 0 — летят по прямой без качания. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (ClampMin = "0", EditCondition = "FlightDuration > 0"))
 	float DepartBobMultiplier = 1.f;
+
+	/** On departure the flock flies away together in one direction (away from the player) instead of scattering in all directions.
+	 * При отлёте стая улетает вместе в одну сторону (от игрока), а не разлетается кто куда. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flight", meta = (EditCondition = "FlightDuration > 0"))
+	bool bDepartInOneDirection = false;
 
 	/** Single Pass only: seconds before birds respawn (while the player is still in range).
 	 * Только Single Pass: секунды до повторного появления, пока игрок рядом. */
