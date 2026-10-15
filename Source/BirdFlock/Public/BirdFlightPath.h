@@ -53,15 +53,30 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flock")
 	TSoftObjectPtr<USkeletalMesh> BirdMesh;
 
-	/** Flight animation played as a single node (e.g. ANIM_Crow_Fly).
-	 * Анимация полёта одним узлом (например ANIM_Crow_Fly). */
+	/** Flight animation played as a single node (e.g. ANIM_Crow_Fly). Birds always flap this while cruising by default.
+	 * Анимация полёта одним узлом (например ANIM_Crow_Fly); по умолчанию птицы машут ею весь полёт по маршруту. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flock")
 	TSoftObjectPtr<UAnimationAsset> BirdAnimToPlay;
 
-	/** Optional second animation; ~35% of birds play it instead of the main one, for variety (e.g. ANIM_Crow_Glide).
-	 * Необязательная вторая анимация; ~35% птиц летают с ней вместо основной, для разнообразия (например ANIM_Crow_Glide). */
+	/** Optional glide animation for flap/glide cycling: with Birds Alternate Glide on, birds flap Bird Flap Seconds, then glide Bird Glide Seconds. Without cycling it is not used — birds always flap the main animation.
+	 * Необязательная анимация планирования: при включённом Birds Alternate Glide птицы Bird Flap Seconds секунд машут, затем Bird Glide Seconds секунд планируют. Без чередования не используется — птицы всегда машут основной анимацией. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flock")
 	TSoftObjectPtr<UAnimationAsset> BirdAnimToPlayAlt;
+
+	/** Alternate flapping and gliding on the spline cruise (requires Bird Anim to Play Alt). Off = birds always flap.
+	 * Чередовать взмахи и планирование на маршруте (требует Bird Anim to Play Alt). Выключено — птицы всегда машут. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flock")
+	bool bBirdsAlternateGlide = false;
+
+	/** Seconds a bird flaps before switching to a glide (±random per bird).
+	 * Сколько секунд птица машет до перехода в планирование (±рандом на птицу). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flock", meta = (ClampMin = "0.5", EditCondition = "bBirdsAlternateGlide"))
+	float BirdFlapSeconds = 4.f;
+
+	/** Seconds a bird glides before flapping again (±random per bird).
+	 * Сколько секунд птица планирует до возврата к взмахам (±рандом на птицу). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Birds|Flock", meta = (ClampMin = "0.5", EditCondition = "bBirdsAlternateGlide"))
+	float BirdGlideSeconds = 2.f;
 
 	/** Optional AnimBlueprint; when set it replaces the single-node animations above.
 	 * Необязательный AnimBlueprint; если задан — заменяет одиночные анимации выше. */

@@ -85,6 +85,32 @@ public:
 	 * Скорость анимации на маршруте; при отлёте умножается на DepartAnimRateMultiplier. */
 	float BasePlayRate = 1.f;
 
+	/** Flap animation used while cruising; the bird always flaps unless glide cycling is on.
+	 * Анимация взмахов на маршруте; птица машет всегда, если не включено чередование с планированием. */
+	UPROPERTY()
+	TObjectPtr<UAnimationAsset> CruiseAnimAsset = nullptr;
+
+	/** Optional glide animation for flap/glide cycling on the spline.
+	 * Необязательная анимация планирования для чередования на маршруте. */
+	UPROPERTY()
+	TObjectPtr<UAnimationAsset> GlideAnimAsset = nullptr;
+
+	/** Alternate flapping and gliding while cruising (requires GlideAnimAsset).
+	 * Чередовать взмахи и планирование на маршруте (требует GlideAnimAsset). */
+	bool bAlternateGlide = false;
+
+	/** Seconds this bird flaps before switching to a glide (randomized by the spawner).
+	 * Сколько секунд птица машет до перехода в планирование (рандомизируется спавнером). */
+	float FlapCycleSeconds = 4.f;
+
+	/** Seconds this bird glides before flapping again (randomized by the spawner).
+	 * Сколько секунд птица планирует до возврата к взмахам (рандомизируется спавнером). */
+	float GlideCycleSeconds = 2.f;
+
+	/** Current flap/glide cycle timer (random start phase set by the spawner).
+	 * Таймер текущей фазы взмах/планирование (спавнер задаёт случайную стартовую фазу). */
+	float CycleTimer = 0.f;
+
 	/** Random yaw jitter of the departure direction, degrees.
 	 * Случайный разброс направления отлёта, градусы. */
 	float DepartYawJitterDeg = 0.f;
@@ -129,6 +155,7 @@ private:
 
 	float TimeAlive = 0.f;
 	bool bDeparting = false;
+	bool bCurrentlyGliding = false;
 	float FlightTime = 0.f;
 	float DepartTime = 0.f;
 	FVector DepartDirection = FVector::ZeroVector;

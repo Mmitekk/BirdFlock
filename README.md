@@ -27,7 +27,7 @@
 - **Реалистичный отлёт** — через заданное время полёта птицы по одной срываются, улетают из виду, и только потом стая выгружается; разлетаются кто куда или уходят вместе в одну сторону (от игрока).
 - **Слоты звука на каждую птицу** — массив cue'ов: длина массива = количество птиц, у каждой свой приаттаченный звук со случайными повторами; плюс опциональный общий фоновый loop.
 - **Единоразовый режим для сейвов** — галочка и BP-событие, которое стреляет в момент фактического появления стаи; сохранение реализуете сами.
-- **Полная настройка птиц** — меш, одиночная анимация (+ вторая «планирующая»), замена на AnimBP, рандомизация масштаба/скорости/смещений, поправка разворота меша.
+- **Полная настройка птиц** — меш, одиночная анимация (+ чередование взмахов и планирования), замена на AnimBP, рандомизация масштаба/скорости/смещений, поправка разворота меша.
 - **Экономичность** — актор опрашивает игрока по таймеру; птицы тикают, только пока стая жива.
 - **Отладка** — сферы радиусов и линия расстояния в PIE; лог-категория `LogBirdFlock`.
 - **Кнопка Birds** в полосе категорий панели Details (регистрируется редакторным модулем).
@@ -82,7 +82,10 @@ unreal.EditorAssetLibrary.save_loaded_asset(bp)
 | `Bird Count` | 5 | Сколько птиц в стае. Игнорируется, если `Bird Sounds` не пуст |
 | `Bird Mesh` | — | Скелетная сетка одной птицы |
 | `Bird Anim to Play` | — | Анимация полёта одним узлом |
-| `Bird Anim to Play Alt` | — | Вторая анимация; ~35% птиц летают с ней вместо основной, для разнообразия |
+| `Bird Anim to Play Alt` | — | Анимация планирования для чередования; без `Birds Alternate Glide` не используется — птицы всегда машут основной |
+| `Birds Alternate Glide` | выкл | Чередовать взмахи и планирование на маршруте (нужна `Bird Anim to Play Alt`) |
+| `Bird Flap Seconds` | 4 | Сколько секунд птица машет до планирования (±рандом на птицу) |
+| `Bird Glide Seconds` | 2 | Сколько секунд птица планирует до взмахов (±рандом на птицу) |
 | `Bird Anim Class` | — | AnimBlueprint; если задан — заменяет одиночные анимации |
 | `Bird Scale Range` | 0.9..1.15 | Случайный масштаб каждой птицы |
 | `Bird Speed Min/Max` | 220 / 320 | Скорость полёта по сплайну, см/с |
@@ -210,7 +213,7 @@ either flies away out of sight or despawns by distance.
 - **Realistic departure** — after a configurable flight duration the birds scatter away one by one, fly out of sight, and only then the flock despawns; they either scatter in all directions or leave together in one direction (away from the player).
 - **Per-bird sound slots** — an array of cues: array length = bird count, every bird carries its own attached audio replaying at random intervals; optional shared ambience loop.
 - **One-shot mode for save systems** — a checkbox plus a BlueprintImplementableEvent fired when the one-shot flock actually appears, so you can persist it yourself.
-- **Fully configurable birds** — mesh, single-node animation (+ optional second "glide" animation), AnimBP override, scale/speed/offset randomization, yaw correction for meshes authored off-axis.
+- **Fully configurable birds** — mesh, single-node animation (+ optional flap/glide cycling), AnimBP override, scale/speed/offset randomization, yaw correction for meshes authored off-axis.
 - **Performance-friendly** — the actor polls the player on a configurable timer; birds tick only while the flock is alive.
 - **Debug tools** — trigger/deactivate radius spheres and a live distance line in PIE; `LogBirdFlock` log category.
 - **Details panel shortcut** — an editor module registers a **Birds** button in the Details category strip.
@@ -265,7 +268,10 @@ Note: UE 5.2 Python cannot assign `TSoftObjectPtr` from a `SoftObjectPath` — p
 | `Bird Count` | 5 | How many birds spawn. Ignored when `Bird Sounds` is not empty |
 | `Bird Mesh` | None | Skeletal mesh of one bird |
 | `Bird Anim to Play` | None | Flight animation played as a single node |
-| `Bird Anim to Play Alt` | None | Optional second animation; ~35% of birds play it instead of the main one, for variety |
+| `Bird Anim to Play Alt` | None | Glide animation for flap/glide cycling; without `Birds Alternate Glide` it is unused — birds always flap the main one |
+| `Birds Alternate Glide` | Off | Alternate flapping and gliding while cruising (needs `Bird Anim to Play Alt`) |
+| `Bird Flap Seconds` | 4 | Seconds a bird flaps before gliding (±random per bird) |
+| `Bird Glide Seconds` | 2 | Seconds a bird glides before flapping again (±random per bird) |
 | `Bird Anim Class` | None | Optional AnimBlueprint; when set it replaces the single-node animations |
 | `Bird Scale Range` | 0.9..1.15 | Random per-bird scale range |
 | `Bird Speed Min/Max` | 220 / 320 | Flight speed along the spline, cm/s |

@@ -117,6 +117,18 @@ void AFlockBird::StartDeparture()
 	}
 	Outward = Outward.RotateAngleAxis(DepartYawJitterDeg, FVector::UpVector);
 	DepartDirection = (Outward + FVector(0.f, 0.f, DepartClimb)).GetSafeNormal();
+	// Fleeing birds always flap: break out of a glide before leaving.
+	// Убегающие птицы всегда машут: выходим из планирования перед отлётом.
+	if (bCurrentlyGliding)
+	{
+		bCurrentlyGliding = false;
+		CycleTimer = 0.f;
+		if (CruiseAnimAsset)
+		{
+			MeshComponent->SetAnimation(CruiseAnimAsset.Get());
+			MeshComponent->Play(true);
+		}
+	}
 	// The departure line starts exactly where the bird is now; the bob is a transient
 	// offset on top of that line and must never accumulate into the position.
 	DepartBaseLocation = GetActorLocation();
@@ -192,6 +204,21 @@ void AFlockBird::Tick(float DeltaSeconds)
 		if (FlightTime >= FlightDuration + DepartDelay)
 		{
 			StartDeparture();
+		}
+	}
+
+	// ------- Flap/glide cycling on the spline cruise.
+	// ------- Чередование взмахов и планирования на маршруте.
+	if (bAlternateGlide && GlideAnimAsset && CruiseAnimAsset)
+	{
+		CycleTimer += DeltaSeconds;
+		const float CycleLimit = bCurrentlyGliding ? GlideCycleSeconds : FlapCycleSeconds;
+		if (CycleTimer >= CycleLimit)
+		{
+			CycleTimer = 0.f;
+			bCurrentlyGliding = !bCurrentlyGliding;
+			MeshComponent->SetAnimation(bCurrentlyGliding ? GlideAnimAsset.Get() : CruiseAnimAsset.Get());
+			MeshComponent->Play(true);
 		}
 	}
 

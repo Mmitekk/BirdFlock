@@ -16,8 +16,6 @@
 
 namespace
 {
-	// Fraction of birds that play the alternate animation when one is set.
-	constexpr float AltAnimChance = 0.35f;
 	// Min separation kept between the deactivate radius and the trigger radius.
 	constexpr float DeactivateMinGap = 500.f;
 }
@@ -322,19 +320,25 @@ void ABirdFlightPath::ActivateFlock()
 		}
 		else
 		{
-			UAnimationAsset* Anim = MainAnim;
-			if (AltAnim && (Rng.FRand() < AltAnimChance || !MainAnim))
-			{
-				Anim = AltAnim;
-			}
+			// Birds always cruise with the main (flap) animation; the glide anim is
+			// only used inside flap/glide cycling when the user enables it.
+			UAnimationAsset* Anim = MainAnim ? MainAnim : AltAnim;
 			if (Anim)
 			{
-				Bird->MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-				Bird->MeshComponent->SetAnimation(Anim);
-				Bird->BasePlayRate = Rng.FRandRange(0.95f, 1.1f);
-				Bird->MeshComponent->SetPlayRate(Bird->BasePlayRate);
-				Bird->MeshComponent->Play(true);
-			}
+			Bird->MeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+			Bird->MeshComponent->SetAnimation(Anim);
+			Bird->BasePlayRate = Rng.FRandRange(0.95f, 1.1f);
+			Bird->MeshComponent->SetPlayRate(Bird->BasePlayRate);
+			Bird->MeshComponent->Play(true);
+
+			// Glide cycling assets: without it birds flap the main animation non-stop.
+			Bird->CruiseAnimAsset = Anim;
+			Bird->GlideAnimAsset = (MainAnim && AltAnim && Anim != AltAnim) ? AltAnim : nullptr;
+			Bird->bAlternateGlide = Bird->GlideAnimAsset != nullptr && bBirdsAlternateGlide;
+			Bird->FlapCycleSeconds = FMath::Max(BirdFlapSeconds, 0.5f) * Rng.FRandRange(0.75f, 1.35f);
+			Bird->GlideCycleSeconds = FMath::Max(BirdGlideSeconds, 0.5f) * Rng.FRandRange(0.75f, 1.35f);
+			Bird->CycleTimer = Rng.FRandRange(0.f, Bird->FlapCycleSeconds);
+		}
 		}
 
 		Bird->OwnerPath = this;
