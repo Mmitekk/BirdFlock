@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "BirdFlock",
+	"Description": "Spline-based flying bird flocks (Long Dark style). Place a flight-path blueprint, edit the spline, configure trigger distances / probability / bird count. Стаи птиц, летающих по сплайнам.",
+	"Category": "Gameplay",
+	"CreatedBy": "Mmitekk",
+	"CanContainContent": true,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "BirdFlock",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "BirdFlockEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}

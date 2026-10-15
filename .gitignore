@@ -1,0 +1,15 @@
+# Unreal Build Accelerator / generated
+Binaries/
+Intermediate/
+DerivedDataCache/
+Saved/
+.vs/
+*.VC.db
+*.sln
+*.suo
+
+# Optional locally-migrated bird assets are not distributed (bring your own)
+Content/
+
+# Project-specific helper scripts
+Tools/
